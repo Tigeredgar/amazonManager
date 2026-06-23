@@ -24,8 +24,14 @@ export function normalizeEmailText(value: string) {
     .trim();
 }
 
+export function cleanProductTitle(value: string) {
+  const cleaned = normalizeEmailText(value).replace(/^[*•-]\s+/, "");
+  const markdownLink = cleaned.match(/^\[([^\]]+)]\((https?:\/\/[^)]+)\)$/i);
+  return normalizeEmailText(markdownLink?.[1] ?? cleaned);
+}
+
 export function normalizeTitle(value: string) {
-  return normalizeEmailText(value)
+  return cleanProductTitle(value)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
@@ -71,8 +77,9 @@ function extractItems(lines: string[], type: AmazonEventType): ParsedAmazonItem[
       .slice(Math.max(0, index - 5), index)
       .filter(isProductCandidate)
       .sort((a, b) => b.length - a.length);
-    const title = candidates[0];
-    if (!title) return;
+    const titleCandidate = candidates[0];
+    if (!titleCandidate) return;
+    const title = cleanProductTitle(titleCandidate);
 
     const priceLine = lines.slice(index + 1, index + 4).find((entry) => MONEY.test(entry));
     results.push({
@@ -94,9 +101,9 @@ function extractItems(lines: string[], type: AmazonEventType): ParsedAmazonItem[
     .filter((line) => line.length >= 28 && isProductCandidate(line));
 
   return dedupeItems(
-    candidates.map((title) => ({
-      title,
-      normalizedTitle: normalizeTitle(title),
+    candidates.map((titleCandidate) => ({
+      title: cleanProductTitle(titleCandidate),
+      normalizedTitle: normalizeTitle(titleCandidate),
       quantity: 1,
       priceCents: null,
     })),

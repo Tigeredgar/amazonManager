@@ -35,7 +35,7 @@ export default async function DashboardPage({
         <section className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-[0.18em]">
+              <Badge variant="outline" className="border-primary/30 bg-primary/10 font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
                 America / Chicago
               </Badge>
               <span className="text-xs text-muted-foreground">Last sync: {lastSync}</span>
@@ -74,7 +74,11 @@ export default async function DashboardPage({
           <MetricCard label="Parser reviews" value={String(data.metrics.needsReview)} detail="Ambiguous emails need a decision" icon={ScanSearch} />
         </section>
 
-        <DashboardView orders={data.orders} initialView={params.view} />
+        <DashboardView
+          key={params.view ?? "attention"}
+          orders={data.orders}
+          initialView={params.view}
+        />
       </div>
     </AppShell>
   );

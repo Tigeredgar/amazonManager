@@ -28,6 +28,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const dashboard = await getDashboardData();
   const order = dashboard.orders.find((candidate) => candidate.id === id);
   if (!order) notFound();
+  const allArchived = order.items.every((item) => item.archivedAt);
+  const allFinalized = order.items.every(
+    (item) => item.archivedAt && item.returnState === "refunded",
+  );
 
   const timeline = isDemoMode()
     ? [
@@ -55,8 +59,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 {[order.recipient, order.destination].filter(Boolean).join(" · ")}
               </p>
             </div>
-            <Badge variant={order.items.every((item) => item.archivedAt) ? "secondary" : "outline"}>
-              {order.items.every((item) => item.archivedAt) ? "Archived" : `${order.items.length} item${order.items.length === 1 ? "" : "s"}`}
+            <Badge variant={allArchived ? "secondary" : "outline"}>
+              {allFinalized
+                ? "Finalized"
+                : allArchived
+                  ? "Archived"
+                  : `${order.items.length} item${order.items.length === 1 ? "" : "s"}`}
             </Badge>
           </div>
         </div>

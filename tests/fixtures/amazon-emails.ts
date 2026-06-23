@@ -56,7 +56,7 @@ Sat, Jun 27
 Dropoff location
 Any UPS Dropoff location
 Item(s) in your return request
-Smart Home Presence Sensor Wireless 5-zone System
+[Smart Home Presence Sensor Wireless 5-zone System](https://www.amazon.com/gp/product/B000TEST01?ref_=E_SonarPREPReturnSummary_Asin_Title)
 Quantity: 1
 Order # 112-0000000-0000003
 Refund subtotal $54.11
@@ -75,7 +75,7 @@ Refund subtotal $31.38
 Total estimated refund* $31.38
 $31.38 to your Visa ending in 0000
 Item(s) in your return request
-MMO Gaming Mouse with Programmable Buttons
+[MMO Gaming Mouse with Programmable Buttons](https://www.amazon.com/gp/product/B000TEST02?ref_=E_ReturnDropOffReceived_Asin_Title)
 Quantity: 1
 Order # 112-0000000-0000004`,
 };
@@ -92,7 +92,7 @@ Total refund* $31.38
 Refund method
 $31.38 to your Visa ending in 0000
 Item(s) in your return request
-MMO Gaming Mouse with Programmable Buttons
+[MMO Gaming Mouse with Programmable Buttons](https://www.amazon.com/gp/product/B000TEST02?ref_=E_RefundConfirmation_Asin_Title)
 Quantity: 1
 Order # 112-0000000-0000004`,
 };

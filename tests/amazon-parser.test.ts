@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getSafeAmazonUrl, normalizeEmailText, parseAmazonEmail, parseMoneyToCents } from "@/lib/amazon/parser";
+import { cleanProductTitle, getSafeAmazonUrl, normalizeEmailText, normalizeTitle, parseAmazonEmail, parseMoneyToCents } from "@/lib/amazon/parser";
 import { delivered, dropoff, ordered, refundIssued, returnRequested, shipped } from "./fixtures/amazon-emails";
 
 describe("Amazon email parser", () => {
@@ -48,6 +48,19 @@ describe("Amazon email parser", () => {
 
   it("extracts the promised refund date from a dropoff confirmation", () => {
     expect(parseAmazonEmail(dropoff).promisedRefundDate).toBe("2026-06-30");
+  });
+
+  it("removes Markdown links and list markers from product titles", () => {
+    const linked = "[MMO Gaming Mouse...](https://www.amazon.com/gp/product/B000TEST02?ref_=dropoff)";
+    expect(cleanProductTitle(linked)).toBe("MMO Gaming Mouse...");
+    expect(normalizeTitle(linked)).toBe("mmo gaming mouse");
+    expect(cleanProductTitle("* Full product title")).toBe("Full product title");
+  });
+
+  it("normalizes return lifecycle links to the same product", () => {
+    expect(parseAmazonEmail(dropoff).items[0].normalizedTitle).toBe(
+      parseAmazonEmail(refundIssued).items[0].normalizedTitle,
+    );
   });
 
   it("normalizes formatting and parses money", () => {

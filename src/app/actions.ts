@@ -20,16 +20,28 @@ export async function setItemDecision(itemId: string, decision: string) {
   const validatedDecision = decisionSchema.parse(decision);
   if (isDemoMode()) return { ok: true };
 
-  await getDb()
-    .update(items)
-    .set({
+  try {
+    const updated = await getDb()
+      .update(items)
+      .set({
+        decision: validatedDecision,
+        archivedAt: validatedDecision === "keep" ? new Date() : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(items.id, id))
+      .returning({ id: items.id });
+
+    if (!updated.length) throw new Error("Item not found");
+    revalidatePath("/");
+    return { ok: true };
+  } catch (error) {
+    console.error("[setItemDecision] failed", {
+      itemId: id,
       decision: validatedDecision,
-      archivedAt: validatedDecision === "keep" ? new Date() : null,
-      updatedAt: new Date(),
-    })
-    .where(eq(items.id, id));
-  revalidatePath("/");
-  return { ok: true };
+      error,
+    });
+    throw error;
+  }
 }
 
 export async function setItemArchived(itemId: string, archived: boolean) {
@@ -37,12 +49,20 @@ export async function setItemArchived(itemId: string, archived: boolean) {
   const id = idSchema.parse(itemId);
   if (isDemoMode()) return { ok: true };
 
-  await getDb()
-    .update(items)
-    .set({ archivedAt: archived ? new Date() : null, updatedAt: new Date() })
-    .where(eq(items.id, id));
-  revalidatePath("/");
-  return { ok: true };
+  try {
+    const updated = await getDb()
+      .update(items)
+      .set({ archivedAt: archived ? new Date() : null, updatedAt: new Date() })
+      .where(eq(items.id, id))
+      .returning({ id: items.id });
+
+    if (!updated.length) throw new Error("Item not found");
+    revalidatePath("/");
+    return { ok: true };
+  } catch (error) {
+    console.error("[setItemArchived] failed", { itemId: id, archived, error });
+    throw error;
+  }
 }
 
 const itemDetailsSchema = z.object({

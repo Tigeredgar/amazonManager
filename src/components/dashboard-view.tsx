@@ -1,17 +1,22 @@
 "use client";
 
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
-import { Archive, Box, CalendarClock, CircleDollarSign, PackageOpen, Search } from "lucide-react";
+import { Archive, Box, CalendarClock, CheckCircle2, CircleDollarSign, MapPin, PackageOpen, Search, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { DashboardItem, DashboardOrder } from "@/lib/dashboard/types";
+import { belongsToDashboardView, dashboardViewNames, matchesDeliveryFilters, type DashboardViewName } from "@/lib/dashboard/views";
 import { ItemActions } from "./item-actions";
+
+const ALL_FILTER = "__all__";
 
 function currency(cents: number | null) {
   if (cents === null) return "—";
@@ -24,6 +29,13 @@ function shortDate(value: string | null) {
 }
 
 function status(item: DashboardItem) {
+  if (item.archivedAt && item.returnState === "refunded") {
+    return { label: "Finalized", variant: "secondary" as const };
+  }
+  if (item.archivedAt && item.decision === "keep") {
+    return { label: "Kept", variant: "secondary" as const };
+  }
+  if (item.archivedAt) return { label: "Archived", variant: "secondary" as const };
   if (item.returnState === "refunded") return { label: "Refunded", variant: "secondary" as const };
   if (item.returnState === "dropped_off" || item.returnState === "refund_pending") {
     return { label: "Refund pending", variant: "outline" as const };
@@ -108,8 +120,8 @@ function ItemRow({ item }: { item: DashboardItem }) {
 
 function OrderCard({ order, visibleItems }: { order: DashboardOrder; visibleItems: DashboardItem[] }) {
   return (
-    <Card className="overflow-hidden bg-card/85 p-0 shadow-sm">
-      <CardHeader className="border-b bg-muted/25 px-5 py-4">
+    <Card className="overflow-hidden border border-white/10 bg-card/88 p-0 shadow-[0_14px_40px_rgba(0,0,0,0.28)]">
+      <CardHeader className="border-b border-white/10 bg-white/3 px-5 py-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
@@ -136,29 +148,43 @@ function OrderCard({ order, visibleItems }: { order: DashboardOrder; visibleItem
   );
 }
 
-type View = "attention" | "returns" | "transit" | "archived";
-
-function belongsTo(item: DashboardItem, view: View) {
-  if (view === "archived") return Boolean(item.archivedAt);
-  if (item.archivedAt) return false;
-  if (view === "returns") return Boolean(item.returnState || item.decision === "return_planned");
-  if (view === "transit") return item.lifecycleStatus !== "delivered";
-  return item.lifecycleStatus === "delivered" && !item.returnState && item.decision !== "keep";
-}
-
 export function DashboardView({ orders, initialView }: { orders: DashboardOrder[]; initialView?: string }) {
-  const validView = ["attention", "returns", "transit", "archived"].includes(initialView ?? "")
-    ? (initialView as View)
+  const validView = dashboardViewNames.includes(initialView as DashboardViewName)
+    ? (initialView as DashboardViewName)
     : "attention";
   const [query, setQuery] = useState("");
-  const [view, setView] = useState<View>(validView);
+  const [view, setView] = useState<DashboardViewName>(validView);
+  const [recipient, setRecipient] = useState(ALL_FILTER);
+  const [destination, setDestination] = useState(ALL_FILTER);
+
+  const recipients = useMemo(
+    () =>
+      [...new Set(orders.map((order) => order.recipient).filter((value): value is string => Boolean(value)))].sort(),
+    [orders],
+  );
+  const destinations = useMemo(
+    () =>
+      [...new Set(orders.map((order) => order.destination).filter((value): value is string => Boolean(value)))].sort(),
+    [orders],
+  );
+  const scopedOrders = useMemo(
+    () =>
+      orders.filter((order) =>
+        matchesDeliveryFilters(
+          order,
+          recipient === ALL_FILTER ? null : recipient,
+          destination === ALL_FILTER ? null : destination,
+        ),
+      ),
+    [destination, orders, recipient],
+  );
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return orders.flatMap((order) => {
+    return scopedOrders.flatMap((order) => {
       const visibleItems = order.items.filter(
         (item) =>
-          belongsTo(item, view) &&
+          belongsToDashboardView(item, view) &&
           (!needle ||
             item.title.toLowerCase().includes(needle) ||
             order.orderNumber.includes(needle) ||
@@ -166,19 +192,22 @@ export function DashboardView({ orders, initialView }: { orders: DashboardOrder[
       );
       return visibleItems.length ? [{ order, visibleItems }] : [];
     });
-  }, [orders, query, view]);
+  }, [query, scopedOrders, view]);
 
   const counts = Object.fromEntries(
-    (["attention", "returns", "transit", "archived"] as View[]).map((candidate) => [
+    dashboardViewNames.map((candidate) => [
       candidate,
-      orders.flatMap(({ items }) => items).filter((item) => belongsTo(item, candidate)).length,
+      scopedOrders
+        .flatMap(({ items }) => items)
+        .filter((item) => belongsToDashboardView(item, candidate)).length,
     ]),
-  ) as Record<View, number>;
+  ) as Record<DashboardViewName, number>;
+  const hasFilters = recipient !== ALL_FILTER || destination !== ALL_FILTER;
 
   return (
-    <Tabs value={view} onValueChange={(value) => setView(value as View)} className="space-y-5">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <TabsList className="grid h-auto grid-cols-2 gap-1 sm:grid-cols-4">
+    <Tabs value={view} onValueChange={(value) => setView(value as DashboardViewName)} className="space-y-5">
+      <div className="space-y-3">
+        <TabsList className="grid h-auto grid-cols-2 gap-1 border border-white/10 bg-white/4 sm:grid-cols-3 xl:grid-cols-5">
           <TabsTrigger value="attention">
             <CalendarClock className="h-4 w-4" /> Needs attention <span className="font-mono">{counts.attention}</span>
           </TabsTrigger>
@@ -191,27 +220,74 @@ export function DashboardView({ orders, initialView }: { orders: DashboardOrder[
           <TabsTrigger value="archived">
             <Archive className="h-4 w-4" /> Archived <span className="font-mono">{counts.archived}</span>
           </TabsTrigger>
+          <TabsTrigger value="finalized">
+            <CheckCircle2 className="h-4 w-4" /> Finalized <span className="font-mono">{counts.finalized}</span>
+          </TabsTrigger>
         </TabsList>
-        <div className="relative w-full xl:max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products or order #" className="pl-9" />
+
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(240px,1fr)_220px_220px_auto]">
+          <div className="relative sm:col-span-2 xl:col-span-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products or order #" className="pl-9" />
+          </div>
+
+          <Select value={recipient} onValueChange={setRecipient}>
+            <SelectTrigger className="w-full" aria-label="Filter by recipient">
+              <UserRound className="h-4 w-4 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              <SelectItem value={ALL_FILTER}>All people</SelectItem>
+              {recipients.map((name) => (
+                <SelectItem key={name} value={name}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={destination} onValueChange={setDestination}>
+            <SelectTrigger className="w-full" aria-label="Filter by destination">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              <SelectItem value={ALL_FILTER}>All destinations</SelectItem>
+              {destinations.map((place) => (
+                <SelectItem key={place} value={place}>{place}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {hasFilters ? (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setRecipient(ALL_FILTER);
+                setDestination(ALL_FILTER);
+              }}
+            >
+              <X className="h-4 w-4" /> Clear
+            </Button>
+          ) : null}
         </div>
       </div>
 
-      {(["attention", "returns", "transit", "archived"] as View[]).map((candidate) => (
+      {dashboardViewNames.map((candidate) => (
         <TabsContent key={candidate} value={candidate} className="space-y-4">
           {filtered.length ? (
             filtered.map(({ order, visibleItems }) => (
               <OrderCard key={order.id} order={order} visibleItems={visibleItems} />
             ))
           ) : (
-            <Card className="border-dashed bg-card/55">
+            <Card className="border border-dashed border-white/15 bg-card/70">
               <CardContent className="flex min-h-48 flex-col items-center justify-center gap-3 text-center">
                 <PackageOpen className="h-8 w-8 text-muted-foreground" />
                 <div>
                   <p className="font-medium">Nothing in this view</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {query ? "Try a different search." : "New Amazon email events will appear after the next sync."}
+                    {query || hasFilters
+                      ? "Try a different search or delivery filter."
+                      : "New Amazon email events will appear after the next sync."}
                   </p>
                 </div>
               </CardContent>
