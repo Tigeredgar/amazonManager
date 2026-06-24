@@ -8,6 +8,13 @@
       "when": 1782230155464,
       "tag": "0000_old_odin",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782300000000,
+      "tag": "0001_repair_unarchived_items",
+      "breakpoints": true
     }
   ]
 }

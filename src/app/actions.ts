@@ -9,6 +9,7 @@ import { items, mailboxConnections, parserReviews } from "@/db/schema";
 import { requireAllowedUser } from "@/lib/auth";
 import { isDemoMode } from "@/lib/env";
 import { syncGmail } from "@/lib/gmail/sync";
+import { getItemArchiveChanges } from "@/lib/items/archive";
 import { sendDailyReminderDigest } from "@/lib/reminders/send-digest";
 
 const idSchema = z.uuid();
@@ -52,7 +53,9 @@ export async function setItemArchived(itemId: string, archived: boolean) {
   try {
     const updated = await getDb()
       .update(items)
-      .set({ archivedAt: archived ? new Date() : null, updatedAt: new Date() })
+      // "Keep & archive" records both parts of the decision. Undo both so an
+      // unarchived delivered item becomes actionable again.
+      .set(getItemArchiveChanges(archived))
       .where(eq(items.id, id))
       .returning({ id: items.id });
 
