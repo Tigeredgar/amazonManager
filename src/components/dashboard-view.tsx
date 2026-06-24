@@ -206,33 +206,33 @@ export function DashboardView({ orders, initialView }: { orders: DashboardOrder[
 
   return (
     <Tabs value={view} onValueChange={(value) => setView(value as DashboardViewName)} className="space-y-5">
-      <div className="space-y-3">
-        <TabsList className="grid h-auto grid-cols-2 gap-1 border border-white/10 bg-white/4 sm:grid-cols-3 xl:grid-cols-5">
-          <TabsTrigger value="attention">
+      <div className="space-y-4 sm:space-y-3">
+        <TabsList className="grid h-auto! w-full grid-cols-2 gap-2 border border-white/10 bg-white/4 p-1 sm:grid-cols-3 sm:gap-1 xl:grid-cols-5">
+          <TabsTrigger value="attention" className="h-auto! min-h-10 whitespace-normal py-2 leading-tight">
             <CalendarClock className="h-4 w-4" /> Needs attention <span className="font-mono">{counts.attention}</span>
           </TabsTrigger>
-          <TabsTrigger value="returns">
+          <TabsTrigger value="returns" className="h-auto! min-h-10 whitespace-normal py-2 leading-tight">
             <CircleDollarSign className="h-4 w-4" /> Returns <span className="font-mono">{counts.returns}</span>
           </TabsTrigger>
-          <TabsTrigger value="transit">
+          <TabsTrigger value="transit" className="h-auto! min-h-10 whitespace-normal py-2 leading-tight">
             <PackageOpen className="h-4 w-4" /> In transit <span className="font-mono">{counts.transit}</span>
           </TabsTrigger>
-          <TabsTrigger value="archived">
+          <TabsTrigger value="archived" className="h-auto! min-h-10 whitespace-normal py-2 leading-tight">
             <Archive className="h-4 w-4" /> Archived <span className="font-mono">{counts.archived}</span>
           </TabsTrigger>
-          <TabsTrigger value="finalized">
+          <TabsTrigger value="finalized" className="h-auto! min-h-10 whitespace-normal py-2 leading-tight">
             <CheckCircle2 className="h-4 w-4" /> Finalized <span className="font-mono">{counts.finalized}</span>
           </TabsTrigger>
         </TabsList>
 
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(240px,1fr)_220px_220px_auto]">
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-2 xl:grid-cols-[minmax(240px,1fr)_220px_220px_auto]">
           <div className="relative sm:col-span-2 xl:col-span-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products or order #" className="pl-9" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products or order #" className="h-10 pl-9 sm:h-8" />
           </div>
 
           <Select value={recipient} onValueChange={setRecipient}>
-            <SelectTrigger className="w-full" aria-label="Filter by recipient">
+            <SelectTrigger className="h-10! w-full sm:h-8!" aria-label="Filter by recipient">
               <UserRound className="h-4 w-4 text-muted-foreground" />
               <SelectValue />
             </SelectTrigger>
@@ -245,7 +245,7 @@ export function DashboardView({ orders, initialView }: { orders: DashboardOrder[
           </Select>
 
           <Select value={destination} onValueChange={setDestination}>
-            <SelectTrigger className="w-full" aria-label="Filter by destination">
+            <SelectTrigger className="h-10! w-full sm:h-8!" aria-label="Filter by destination">
               <MapPin className="h-4 w-4 text-muted-foreground" />
               <SelectValue />
             </SelectTrigger>

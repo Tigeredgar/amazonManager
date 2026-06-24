@@ -12,4 +12,11 @@ test("dashboard adapts to a mobile viewport", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Open navigation" })).toBeVisible();
   await expect(page.getByText("Needs attention").first()).toBeVisible();
+
+  const statusBounds = await page.getByRole("tablist").boundingBox();
+  const searchBounds = await page.getByPlaceholder("Search products or order #").boundingBox();
+
+  expect(statusBounds).not.toBeNull();
+  expect(searchBounds).not.toBeNull();
+  expect(searchBounds!.y).toBeGreaterThan(statusBounds!.y + statusBounds!.height);
 });
