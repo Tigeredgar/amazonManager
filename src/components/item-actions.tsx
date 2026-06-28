@@ -1,10 +1,10 @@
 "use client";
 
-import { Archive, ExternalLink, Pencil, RotateCcw, Undo2 } from "lucide-react";
+import { Archive, CheckCircle2, ExternalLink, Pencil, RotateCcw, Undo2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { setItemArchived, setItemDecision, updateItemDetails } from "@/app/actions";
+import { finalizeReturnManually, setItemArchived, setItemDecision, updateItemDetails } from "@/app/actions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -18,6 +18,9 @@ export function ItemActions({ item }: { item: DashboardItem }) {
   const [pending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const canFinalizeRefund =
+    item.returnState !== "refunded" &&
+    (Boolean(item.returnState) || item.decision === "return_planned");
 
   function run(operation: () => Promise<unknown>) {
     startTransition(async () => {
@@ -125,6 +128,35 @@ export function ItemActions({ item }: { item: DashboardItem }) {
             </form>
           </DialogContent>
         </Dialog>
+
+        {canFinalizeRefund ? (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="default" size="sm" disabled={pending}>
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Finalize refund
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Finalize this refund?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Use this when the refund already arrived or the sync missed Amazon’s refund email.
+                  The item will move to Finalized and stop future reminders.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={pending}
+                  onClick={() => run(() => finalizeReturnManually(item.id))}
+                >
+                  Finalize refund
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : null}
 
         <AlertDialog>
           <AlertDialogTrigger asChild>

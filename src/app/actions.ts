@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { items, mailboxConnections, parserReviews } from "@/db/schema";
+import { items, mailboxConnections, parserReviews, returns } from "@/db/schema";
 import { requireAllowedUser } from "@/lib/auth";
 import { isDemoMode } from "@/lib/env";
 import { syncGmail } from "@/lib/gmail/sync";
@@ -64,6 +64,51 @@ export async function setItemArchived(itemId: string, archived: boolean) {
     return { ok: true };
   } catch (error) {
     console.error("[setItemArchived] failed", { itemId: id, archived, error });
+    throw error;
+  }
+}
+
+export async function finalizeReturnManually(itemId: string) {
+  await requireAllowedUser();
+  const id = idSchema.parse(itemId);
+  if (isDemoMode()) return { ok: true };
+
+  const now = new Date();
+  try {
+    const updated = await getDb()
+      .update(items)
+      .set({
+        decision: "return_planned",
+        archivedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(items.id, id))
+      .returning({ id: items.id });
+
+    if (!updated.length) throw new Error("Item not found");
+
+    await getDb()
+      .insert(returns)
+      .values({
+        itemId: id,
+        state: "refunded",
+        refundIssuedAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: returns.itemId,
+        set: {
+          state: "refunded",
+          actualRefundCents: sql`coalesce(${returns.actualRefundCents}, ${returns.expectedRefundCents})`,
+          refundIssuedAt: now,
+          updatedAt: now,
+        },
+      });
+
+    revalidatePath("/");
+    return { ok: true };
+  } catch (error) {
+    console.error("[finalizeReturnManually] failed", { itemId: id, error });
     throw error;
   }
 }

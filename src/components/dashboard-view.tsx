@@ -1,6 +1,6 @@
 "use client";
 
-import { differenceInCalendarDays, format, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Archive, Box, CalendarClock, CheckCircle2, CircleDollarSign, MapPin, PackageOpen, Search, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { activeDashboardDeadline, dashboardDeadlineStatus } from "@/lib/dashboard/deadlines";
 import type { DashboardItem, DashboardOrder } from "@/lib/dashboard/types";
 import { belongsToDashboardView, dashboardViewNames, matchesDeliveryFilters, type DashboardViewName } from "@/lib/dashboard/views";
 import { ItemActions } from "./item-actions";
@@ -46,29 +47,14 @@ function status(item: DashboardItem) {
   return { label: item.lifecycleStatus.replaceAll("_", " "), variant: "outline" as const };
 }
 
-function activeDeadline(item: DashboardItem) {
-  if (item.returnState === "requested" && item.dropoffDeadline) {
-    return { value: item.dropoffDeadline, label: "Drop off by", source: "confirmed" };
-  }
-  if (item.deadline) {
-    return {
-      value: item.deadline,
-      label: "Return by",
-      source: item.deadlineSource === "estimated" ? "estimated" : "manual",
-    };
-  }
-  if (item.promisedRefundDate) {
-    return { value: item.promisedRefundDate, label: "Refund by", source: "confirmed" };
-  }
-  return null;
-}
-
 function Deadline({ item }: { item: DashboardItem }) {
-  const deadline = activeDeadline(item);
+  if (item.returnState === "refunded") {
+    return <span className="text-sm text-muted-foreground">Refund finalized</span>;
+  }
+
+  const deadline = activeDashboardDeadline(item);
   if (!deadline) return <span className="text-sm text-muted-foreground">Deadline not available</span>;
-  const today = new Date();
-  const days = differenceInCalendarDays(parseISO(deadline.value), today);
-  const urgent = days <= 3;
+  const { days, label, urgent } = dashboardDeadlineStatus(deadline.value);
   const elapsed = Math.max(0, Math.min(30, 30 - days));
 
   return (
@@ -76,7 +62,7 @@ function Deadline({ item }: { item: DashboardItem }) {
       <div className="flex items-center justify-between gap-3 text-sm">
         <span className="text-muted-foreground">{deadline.label}</span>
         <span className={`font-mono font-medium ${urgent ? "text-destructive" : ""}`}>
-          {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "Today" : `${days}d left`}
+          {label}
         </span>
       </div>
       <Progress value={(elapsed / 30) * 100} className="h-1.5" />
