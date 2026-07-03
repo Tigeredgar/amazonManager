@@ -2,9 +2,10 @@ import "server-only";
 
 import { addDays } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
+import { hasItemImageUrlColumn } from "@/db/schema-health";
 import {
   emailEvents,
   items,
@@ -17,7 +18,8 @@ import {
 import { findItemCandidates } from "@/lib/amazon/matching";
 import { emailBodyHash, parseAmazonEmail } from "@/lib/amazon/parser";
 import type { AmazonEventType, ParsedAmazonEmail, ParsedAmazonItem } from "@/lib/amazon/types";
-import { extractMessageBody, getHeader } from "@/lib/gmail/mime";
+import { isInvalidGrantError, syncErrorMessage } from "@/lib/gmail/errors";
+import { extractMessageContent, getHeader } from "@/lib/gmail/mime";
 import { getGmailClient } from "./client";
 
 const AMAZON_QUERY =
@@ -27,6 +29,14 @@ const lifecycleRank: Record<string, number> = {
   ordered: 1,
   shipped: 2,
   delivered: 3,
+};
+
+const itemSyncFields = {
+  id: items.id,
+  title: items.title,
+  normalizedTitle: items.normalizedTitle,
+  quantity: items.quantity,
+  lifecycleStatus: items.lifecycleStatus,
 };
 
 function lifecycleForEvent(type: AmazonEventType) {
@@ -100,6 +110,7 @@ async function getOrCreateOrder(parsed: ParsedAmazonEmail) {
 }
 
 async function createItem(orderId: string, parsedItem: ParsedAmazonItem, parsed: ParsedAmazonEmail) {
+  const canStoreImageUrl = await hasItemImageUrlColumn();
   const lifecycle = lifecycleForEvent(parsed.type) ?? "ordered";
   const deliveredAt = parsed.type === "delivered" ? new Date(parsed.occurredAt) : null;
   const [created] = await getDb()
@@ -114,8 +125,9 @@ async function createItem(orderId: string, parsedItem: ParsedAmazonItem, parsed:
       deliveredAt,
       estimatedReturnDeadline: deliveredAt ? deadlineFromDelivery(deliveredAt) : null,
       amazonUrl: parsed.amazonUrl,
+      ...(canStoreImageUrl ? { imageUrl: parsedItem.imageUrl } : {}),
     })
-    .returning();
+    .returning(itemSyncFields);
   return created;
 }
 
@@ -123,6 +135,7 @@ async function applyReturn(itemId: string, parsed: ParsedAmazonEmail) {
   const state = returnStateForEvent(parsed.type);
   if (!state) return;
   const occurredAt = new Date(parsed.occurredAt);
+  const updatedAt = new Date();
   const insertValues = {
     itemId,
     state,
@@ -135,7 +148,7 @@ async function applyReturn(itemId: string, parsed: ParsedAmazonEmail) {
     promisedRefundDate: parsed.promisedRefundDate,
     refundIssuedAt: parsed.type === "refund_issued" ? occurredAt : undefined,
     refundMethodMasked: parsed.refundMethodMasked,
-    updatedAt: new Date(),
+    updatedAt,
   };
   const updateValues = {
     state,
@@ -150,7 +163,7 @@ async function applyReturn(itemId: string, parsed: ParsedAmazonEmail) {
     ...(parsed.promisedRefundDate ? { promisedRefundDate: parsed.promisedRefundDate } : {}),
     ...(parsed.type === "refund_issued" ? { refundIssuedAt: occurredAt } : {}),
     ...(parsed.refundMethodMasked ? { refundMethodMasked: parsed.refundMethodMasked } : {}),
-    updatedAt: new Date(),
+    updatedAt,
   };
   await getDb()
     .insert(returns)
@@ -159,6 +172,17 @@ async function applyReturn(itemId: string, parsed: ParsedAmazonEmail) {
       target: returns.itemId,
       set: updateValues,
     });
+
+  if (parsed.type === "refund_issued") {
+    await getDb()
+      .update(items)
+      .set({
+        decision: "return_planned",
+        archivedAt: sql`coalesce(${items.archivedAt}, ${occurredAt})`,
+        updatedAt,
+      })
+      .where(eq(items.id, itemId));
+  }
 }
 
 async function applyParsedEvent(parsed: ParsedAmazonEmail, emailEventId: string) {
@@ -178,7 +202,8 @@ async function applyParsedEvent(parsed: ParsedAmazonEmail, emailEventId: string)
   }
 
   const db = getDb();
-  let existingItems = await db.select().from(items).where(eq(items.orderId, order.id));
+  const canStoreImageUrl = await hasItemImageUrlColumn();
+  let existingItems = await db.select(itemSyncFields).from(items).where(eq(items.orderId, order.id));
   for (const parsedItem of parsed.items) {
     const candidates = findItemCandidates(parsedItem, existingItems);
     let target = candidates.length === 1 ? candidates[0] : null;
@@ -219,10 +244,11 @@ async function applyParsedEvent(parsed: ParsedAmazonEmail, emailEventId: string)
               }
             : {}),
           ...(parsed.amazonUrl ? { amazonUrl: parsed.amazonUrl } : {}),
+          ...(canStoreImageUrl && parsedItem.imageUrl ? { imageUrl: parsedItem.imageUrl } : {}),
           updatedAt: new Date(),
         })
         .where(eq(items.id, target.id))
-        .returning();
+        .returning(itemSyncFields);
       target = updated;
     }
 
@@ -258,13 +284,17 @@ export type SyncResult = {
 };
 
 export async function syncGmail(): Promise<SyncResult> {
-  const { gmail, connection } = await getGmailClient();
   const db = getDb();
-  const after = connection.lastSyncAt
-    ? ` after:${Math.floor((connection.lastSyncAt.getTime() - 7 * 86_400_000) / 1000)}`
-    : ` newer_than:${connection.importDays}d`;
+  let connection: Awaited<ReturnType<typeof getGmailClient>>["connection"] | null = null;
 
   try {
+    const client = await getGmailClient();
+    const gmail = client.gmail;
+    connection = client.connection;
+    const after = connection.lastSyncAt
+      ? ` after:${Math.floor((connection.lastSyncAt.getTime() - 7 * 86_400_000) / 1000)}`
+      : ` newer_than:${connection.importDays}d`;
+
     const list = await gmail.users.messages.list({
       userId: "me",
       q: `${AMAZON_QUERY}${after}`,
@@ -291,13 +321,14 @@ export async function syncGmail(): Promise<SyncResult> {
       const message = response.data;
       if (!message.id) continue;
       const subject = getHeader(message.payload, "Subject") ?? "(No subject)";
-      const body = extractMessageBody(message.payload);
+      const { body, imageUrls } = extractMessageContent(message.payload);
       const receivedAt = new Date(Number(message.internalDate ?? Date.now()));
       const parsed = parseAmazonEmail({
         id: message.id,
         threadId: message.threadId,
         subject,
         body,
+        imageUrls,
         receivedAt,
       });
 
@@ -346,11 +377,17 @@ export async function syncGmail(): Promise<SyncResult> {
       moreAvailable,
     };
   } catch (cause) {
-    const error = cause instanceof Error ? cause.message : "Unknown Gmail synchronization error";
-    await db
-      .update(mailboxConnections)
-      .set({ lastSyncStatus: "failed", lastSyncError: error, updatedAt: new Date() })
-      .where(eq(mailboxConnections.id, connection.id));
+    const error = syncErrorMessage(cause);
+    if (connection) {
+      await db
+        .update(mailboxConnections)
+        .set({
+          lastSyncStatus: isInvalidGrantError(cause) ? "reauthorization_required" : "failed",
+          lastSyncError: error,
+          updatedAt: new Date(),
+        })
+        .where(eq(mailboxConnections.id, connection.id));
+    }
     throw cause;
   }
 }

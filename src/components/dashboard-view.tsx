@@ -74,29 +74,50 @@ function Deadline({ item }: { item: DashboardItem }) {
   );
 }
 
+function ItemThumbnail({ item }: { item: DashboardItem }) {
+  return (
+    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-white/5 sm:h-[72px] sm:w-[72px]">
+      {item.imageUrl ? (
+        <img
+          src={item.imageUrl}
+          alt={`${item.title} product image`}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+        />
+      ) : (
+        <Box className="h-6 w-6 text-muted-foreground" />
+      )}
+    </div>
+  );
+}
+
 function ItemRow({ item }: { item: DashboardItem }) {
   const itemStatus = status(item);
   return (
     <div className="grid gap-5 border-t px-5 py-5 first:border-t-0 lg:grid-cols-[minmax(0,1fr)_180px_auto] lg:items-center">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={itemStatus.variant} className="capitalize">
-            {itemStatus.label}
-          </Badge>
-          {item.quantity > 1 ? <Badge variant="outline">Qty {item.quantity}</Badge> : null}
-          {item.tags.map((tag) => (
-            <Badge key={tag} variant="outline" className="font-normal text-muted-foreground">
-              {tag}
+      <div className="flex min-w-0 gap-4">
+        <ItemThumbnail item={item} />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={itemStatus.variant} className="capitalize">
+              {itemStatus.label}
             </Badge>
-          ))}
+            {item.quantity > 1 ? <Badge variant="outline">Qty {item.quantity}</Badge> : null}
+            {item.tags.map((tag) => (
+              <Badge key={tag} variant="outline" className="font-normal text-muted-foreground">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+          <h3 className="mt-3 line-clamp-2 font-medium leading-6">{item.title}</h3>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            <span>{currency(item.priceCents)}</span>
+            {item.deliveredAt ? <span>Delivered {shortDate(item.deliveredAt)}</span> : null}
+            {item.expectedRefundCents ? <span>{currency(item.expectedRefundCents)} expected refund</span> : null}
+          </div>
+          {item.notes ? <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{item.notes}</p> : null}
         </div>
-        <h3 className="mt-3 line-clamp-2 font-medium leading-6">{item.title}</h3>
-        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-          <span>{currency(item.priceCents)}</span>
-          {item.deliveredAt ? <span>Delivered {shortDate(item.deliveredAt)}</span> : null}
-          {item.expectedRefundCents ? <span>{currency(item.expectedRefundCents)} expected refund</span> : null}
-        </div>
-        {item.notes ? <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{item.notes}</p> : null}
       </div>
       <Deadline item={item} />
       <ItemActions item={item} />

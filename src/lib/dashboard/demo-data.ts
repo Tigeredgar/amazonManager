@@ -21,6 +21,7 @@ export function getDemoDashboardData(): DashboardData {
       status: "demo",
       error: null,
       moreAvailable: false,
+      reauthorizationRequired: false,
     },
     orders: [
       {
@@ -51,6 +52,7 @@ export function getDemoDashboardData(): DashboardData {
             notes: null,
             tags: ["travel"],
             amazonUrl: "https://www.amazon.com/gp/css/order-history",
+            imageUrl: null,
             archivedAt: null,
           },
           {
@@ -72,6 +74,7 @@ export function getDemoDashboardData(): DashboardData {
             notes: "Compare cooling performance before the deadline.",
             tags: [],
             amazonUrl: "https://www.amazon.com/gp/css/order-history",
+            imageUrl: null,
             archivedAt: null,
           },
         ],
@@ -104,6 +107,7 @@ export function getDemoDashboardData(): DashboardData {
             notes: null,
             tags: ["smart home"],
             amazonUrl: "https://www.amazon.com/gp/css/order-history",
+            imageUrl: null,
             archivedAt: null,
           },
         ],
@@ -136,6 +140,7 @@ export function getDemoDashboardData(): DashboardData {
             notes: null,
             tags: [],
             amazonUrl: "https://www.amazon.com/gp/css/order-history",
+            imageUrl: null,
             archivedAt: null,
           },
         ],

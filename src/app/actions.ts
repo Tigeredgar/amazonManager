@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { items, mailboxConnections, parserReviews, returns } from "@/db/schema";
 import { requireAllowedUser } from "@/lib/auth";
 import { isDemoMode } from "@/lib/env";
+import { syncErrorMessage } from "@/lib/gmail/errors";
 import { syncGmail } from "@/lib/gmail/sync";
 import { getItemArchiveChanges } from "@/lib/items/archive";
 import { sendDailyReminderDigest } from "@/lib/reminders/send-digest";
@@ -144,11 +145,17 @@ export async function updateItemDetails(input: z.infer<typeof itemDetailsSchema>
 export async function syncNow() {
   await requireAllowedUser();
   if (isDemoMode()) return { ok: true, demo: true };
-  const sync = await syncGmail();
-  const reminders = await sendDailyReminderDigest();
-  revalidatePath("/");
-  revalidatePath("/settings");
-  return { ok: true, sync, reminders };
+  try {
+    const sync = await syncGmail();
+    const reminders = await sendDailyReminderDigest();
+    revalidatePath("/");
+    revalidatePath("/settings");
+    return { ok: true, sync, reminders };
+  } catch (cause) {
+    revalidatePath("/");
+    revalidatePath("/settings");
+    throw new Error(syncErrorMessage(cause));
+  }
 }
 
 const settingsSchema = z.object({

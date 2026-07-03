@@ -5,6 +5,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { eq, isNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
+import { hasItemImageUrlColumn } from "@/db/schema-health";
 import { items, mailboxConnections, orders, parserReviews, returns } from "@/db/schema";
 import { isDemoMode } from "@/lib/env";
 import { getDemoDashboardData } from "./demo-data";
@@ -14,6 +15,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   if (isDemoMode()) return getDemoDashboardData();
 
   const db = getDb();
+  const imageUrlAvailable = await hasItemImageUrlColumn();
   const [rows, reviewRows, connectionRows] = await Promise.all([
     db
       .select({
@@ -35,6 +37,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         estimatedDeadline: items.estimatedReturnDeadline,
         overrideDeadline: items.returnDeadlineOverride,
         itemAmazonUrl: items.amazonUrl,
+        imageUrl: imageUrlAvailable ? items.imageUrl : sql<string | null>`null`,
         notes: items.notes,
         tags: items.tags,
         archivedAt: items.archivedAt,
@@ -88,6 +91,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       notes: row.notes,
       tags: row.tags,
       amazonUrl: row.itemAmazonUrl ?? row.orderAmazonUrl,
+      imageUrl: row.imageUrl,
       archivedAt: row.archivedAt?.toISOString() ?? null,
     });
     grouped.set(row.orderId, order);
@@ -125,6 +129,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       status: connection?.lastSyncStatus ?? null,
       error: connection?.lastSyncError ?? null,
       moreAvailable: Boolean(connection?.syncPageToken),
+      reauthorizationRequired: connection?.lastSyncStatus === "reauthorization_required",
     },
   };
 }

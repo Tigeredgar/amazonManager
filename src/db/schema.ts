@@ -50,6 +50,7 @@ export const items = pgTable(
     estimatedReturnDeadline: date("estimated_return_deadline"),
     returnDeadlineOverride: date("return_deadline_override"),
     amazonUrl: text("amazon_url"),
+    imageUrl: text("image_url"),
     notes: text("notes"),
     tags: jsonb("tags").$type<string[]>().default([]).notNull(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),

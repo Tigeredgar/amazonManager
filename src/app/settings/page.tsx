@@ -61,6 +61,14 @@ export default async function SettingsPage({
             <AlertDescription>Try again and approve both read-only mail access and Gmail sending.</AlertDescription>
           </Alert>
         ) : null}
+        {connection?.lastSyncStatus === "reauthorization_required" ? (
+          <Alert variant="destructive">
+            <AlertTitle>Gmail needs to be reconnected</AlertTitle>
+            <AlertDescription>
+              Google rejected the stored mailbox token. Reconnect Gmail to create a fresh grant.
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         <div className="grid gap-5 lg:grid-cols-2">
           <Card>
@@ -80,6 +88,9 @@ export default async function SettingsPage({
                 <p className="mt-1 text-muted-foreground">
                   {connection?.lastSyncAt ? `Last synced ${connection.lastSyncAt.toLocaleString()}` : "No production sync has run."}
                 </p>
+                {connection?.lastSyncError ? (
+                  <p className="mt-2 text-xs text-destructive">{connection.lastSyncError}</p>
+                ) : null}
               </div>
               <Button asChild disabled={demo}>
                 <a href={demo ? "#" : "/api/oauth/google/start"}>

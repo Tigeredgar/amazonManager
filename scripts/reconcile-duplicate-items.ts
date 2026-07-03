@@ -15,6 +15,7 @@ type ItemRow = {
   estimated_return_deadline: string | null;
   return_deadline_override: string | null;
   amazon_url: string | null;
+  image_url: string | null;
   notes: string | null;
   tags: string[];
   archived_at: Date | null;
@@ -96,6 +97,7 @@ function mergeRows(rows: ItemRow[], survivor: ItemRow): ItemRow {
     estimated_return_deadline: firstValue(rows, (row) => row.estimated_return_deadline),
     return_deadline_override: firstValue(rows, (row) => row.return_deadline_override),
     amazon_url: firstValue(rows, (row) => row.amazon_url),
+    image_url: firstValue(rows, (row) => row.image_url),
     notes,
     tags,
     archived_at: firstValue(rows, (row) => row.archived_at),
@@ -211,6 +213,7 @@ async function main() {
           estimated_return_deadline = ${merged.estimated_return_deadline},
           return_deadline_override = ${merged.return_deadline_override},
           amazon_url = ${merged.amazon_url},
+          image_url = ${merged.image_url},
           notes = ${merged.notes},
           tags = ${JSON.stringify(merged.tags)}::jsonb,
           archived_at = ${merged.archived_at},

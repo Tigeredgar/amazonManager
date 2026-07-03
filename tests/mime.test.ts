@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { extractMessageBody, getHeader } from "@/lib/gmail/mime";
+import { extractAmazonImageUrls, extractMessageBody, extractMessageContent, getHeader } from "@/lib/gmail/mime";
 
 const encode = (value: string) => Buffer.from(value).toString("base64url");
 
@@ -25,5 +25,29 @@ describe("Gmail MIME extraction", () => {
     };
     expect(extractMessageBody(payload)).toContain("Order body");
     expect(extractMessageBody(payload)).not.toContain("tracker.example");
+  });
+
+  it("extracts trusted Amazon product images from HTML", () => {
+    const html = `
+      <img width="1" height="1" src="https://m.media-amazon.com/images/tracker.jpg">
+      <img src="https://tracker.example/pixel.jpg">
+      <img width="120" height="120" src="https://m.media-amazon.com/images/I/51Product._SL120_.jpg?x=1&amp;y=2">
+    `;
+    expect(extractAmazonImageUrls(html)).toEqual([
+      "https://m.media-amazon.com/images/I/51Product._SL120_.jpg?x=1&y=2",
+    ]);
+  });
+
+  it("returns text body and image URLs together", () => {
+    const payload = {
+      mimeType: "text/html",
+      body: {
+        data: encode('<p>Order body</p><img width="120" src="https://m.media-amazon.com/images/I/51Product.jpg">'),
+      },
+    };
+    expect(extractMessageContent(payload)).toMatchObject({
+      body: "Order body",
+      imageUrls: ["https://m.media-amazon.com/images/I/51Product.jpg"],
+    });
   });
 });

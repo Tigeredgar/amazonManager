@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import { cleanProductTitle, getSafeAmazonUrl, normalizeEmailText, normalizeTitle, parseAmazonEmail, parseMoneyToCents } from "@/lib/amazon/parser";
-import { delivered, dropoff, ordered, refundIssued, returnRequested, shipped } from "./fixtures/amazon-emails";
+import {
+  advanceRefundIssued,
+  delivered,
+  dropoff,
+  ordered,
+  refundIssued,
+  returnRequested,
+  shipped,
+} from "./fixtures/amazon-emails";
 
 describe("Amazon email parser", () => {
   it.each([
@@ -25,11 +33,21 @@ describe("Amazon email parser", () => {
   });
 
   it("extracts multiple delivered items without quantity rows", () => {
-    const parsed = parseAmazonEmail(delivered);
+    const parsed = parseAmazonEmail({
+      ...delivered,
+      imageUrls: [
+        "https://m.media-amazon.com/images/I/fan.jpg",
+        "https://m.media-amazon.com/images/I/cooling.jpg",
+      ],
+    });
     expect(parsed.items).toHaveLength(2);
     expect(parsed.items.map(({ title }) => title)).toContain(
       "Personal Cooling System with Fan, Cooling Plate and Dry-Touch Mist",
     );
+    expect(parsed.items.map(({ imageUrl }) => imageUrl)).toEqual([
+      "https://m.media-amazon.com/images/I/fan.jpg",
+      "https://m.media-amazon.com/images/I/cooling.jpg",
+    ]);
   });
 
   it("extracts return dropoff and refund metadata", () => {
@@ -44,6 +62,21 @@ describe("Amazon email parser", () => {
     const parsed = parseAmazonEmail(refundIssued);
     expect(parsed.actualRefundCents).toBe(3138);
     expect(parsed.promisedRefundDate).toBe("2026-06-26");
+  });
+
+  it("extracts advance refund issued emails as finalized refund events", () => {
+    const parsed = parseAmazonEmail(advanceRefundIssued);
+    expect(parsed).toMatchObject({
+      type: "refund_issued",
+      orderNumber: "111-0246429-7030613",
+      actualRefundCents: 2056,
+      promisedRefundDate: "2026-07-06",
+      refundMethodMasked: "Visa ending in 6662",
+    });
+    expect(parsed.items[0]).toMatchObject({
+      title: "Lyridz Plug-in LED Amber Night Light...",
+      quantity: 1,
+    });
   });
 
   it("extracts the promised refund date from a dropoff confirmation", () => {

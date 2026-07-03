@@ -17,6 +17,7 @@ export type DashboardItem = {
   notes: string | null;
   tags: string[];
   amazonUrl: string | null;
+  imageUrl: string | null;
   archivedAt: string | null;
 };
 
@@ -46,5 +47,6 @@ export type DashboardData = {
     status: string | null;
     error: string | null;
     moreAvailable: boolean;
+    reauthorizationRequired: boolean;
   };
 };

@@ -27,6 +27,9 @@ export default function ErrorPage({ error, reset }: { error: Error & { code?: st
               ? "The authentication service could not be reached. Check your connection and reload the page."
               : "A temporary application error occurred. Try the request again."}
           </p>
+          {!clerkLoadFailed && error.digest ? (
+            <p className="mt-3 font-mono text-xs text-muted-foreground">Reference: {error.digest}</p>
+          ) : null}
           <Button
             className="mt-6"
             onClick={() => (clerkLoadFailed ? window.location.reload() : reset())}

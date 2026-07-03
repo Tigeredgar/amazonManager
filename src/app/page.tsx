@@ -63,7 +63,15 @@ export default async function DashboardPage({
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>The last Gmail sync failed</AlertTitle>
-            <AlertDescription>{data.mailbox.error}</AlertDescription>
+            <AlertDescription>
+              {data.mailbox.error}
+              {data.mailbox.reauthorizationRequired ? (
+                <>
+                  {" "}
+                  <Link href="/settings" className="font-medium underline">Reconnect Gmail</Link>.
+                </>
+              ) : null}
+            </AlertDescription>
           </Alert>
         ) : null}
 

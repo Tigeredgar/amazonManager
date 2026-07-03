@@ -21,6 +21,24 @@ function eventIcon(type: string) {
   return Mail;
 }
 
+function ItemThumbnail({ item }: { item: { title: string; imageUrl: string | null } }) {
+  return (
+    <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-white/5">
+      {item.imageUrl ? (
+        <img
+          src={item.imageUrl}
+          alt={`${item.title} product image`}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+        />
+      ) : (
+        <Package className="h-7 w-7 text-muted-foreground" />
+      )}
+    </div>
+  );
+}
+
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getAllowedUser();
   if (!user) redirect("/unauthorized");
@@ -74,11 +92,16 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             {order.items.map((item) => (
               <Card key={item.id}>
                 <CardHeader>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="capitalize">{item.returnState ?? item.lifecycleStatus}</Badge>
-                    {item.tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+                  <div className="flex gap-4">
+                    <ItemThumbnail item={item} />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="capitalize">{item.returnState ?? item.lifecycleStatus}</Badge>
+                        {item.tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+                      </div>
+                      <CardTitle className="pt-2 text-lg leading-7">{item.title}</CardTitle>
+                    </div>
                   </div>
-                  <CardTitle className="pt-2 text-lg leading-7">{item.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">

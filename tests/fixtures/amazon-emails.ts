@@ -96,3 +96,32 @@ Item(s) in your return request
 Quantity: 1
 Order # 112-0000000-0000004`,
 };
+
+export const advanceRefundIssued = {
+  id: "refund-2",
+  subject: "Advance refund issued for Lyridz Plug-in LED Amber Night....",
+  receivedAt: new Date("2026-06-30T08:00:00-05:00"),
+  body: `Amazon
+Hello Arely,
+
+Your refund was issued.
+
+$20.56 will be credited to your Visa by Jul 6.
+
+View refund summary
+Return summary
+
+Refund subtotal $20.56
+Total refund* $20.56
+
+Refund method
+
+$20.56 to your Visa ending in 6662
+
+Item(s) in your return request
+
+Lyridz Plug-in LED Amber Night Light...
+
+Quantity: 1
+Order # 111-0246429-7030613`,
+};

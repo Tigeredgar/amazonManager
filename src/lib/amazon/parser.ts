@@ -87,6 +87,7 @@ function extractItems(lines: string[], type: AmazonEventType): ParsedAmazonItem[
       normalizedTitle: normalizeTitle(title),
       quantity: Number(quantityMatch[1]),
       priceCents: parseMoneyToCents(priceLine),
+      imageUrl: null,
     });
   });
 
@@ -106,6 +107,7 @@ function extractItems(lines: string[], type: AmazonEventType): ParsedAmazonItem[
       normalizedTitle: normalizeTitle(titleCandidate),
       quantity: 1,
       priceCents: null,
+      imageUrl: null,
     })),
   );
 }
@@ -182,7 +184,11 @@ export function parseAmazonEmail(input: AmazonEmailInput): ParsedAmazonEmail {
   const orderLineIndex = lines.findIndex((line) => ORDER_NUMBER.test(line));
   const orderNumber = body.match(ORDER_NUMBER)?.[1] ?? null;
   const location = extractLocation(lines, orderLineIndex);
-  const items = extractItems(lines, type);
+  const imageUrls = input.imageUrls ?? [];
+  const items = extractItems(lines, type).map((item, index) => ({
+    ...item,
+    imageUrl: imageUrls[index] ?? null,
+  }));
 
   const totalLine = lines.find((line) => /^(grand )?total\s*:?/i.test(line));
   const refundLines = lines.filter((line) => /^(total estimated refund|total refund|refund subtotal)/i.test(line));

@@ -7,6 +7,7 @@ const source = {
   normalizedTitle: "smart presence sensor",
   quantity: 1,
   priceCents: null,
+  imageUrl: null,
 };
 
 describe("item matching", () => {

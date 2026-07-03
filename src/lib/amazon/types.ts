@@ -15,6 +15,7 @@ export type ParsedAmazonItem = {
   normalizedTitle: string;
   quantity: number;
   priceCents: number | null;
+  imageUrl: string | null;
 };
 
 export type ParsedAmazonEmail = {
@@ -42,5 +43,6 @@ export type AmazonEmailInput = {
   threadId?: string | null;
   subject: string;
   body: string;
+  imageUrls?: string[];
   receivedAt: Date;
 };
