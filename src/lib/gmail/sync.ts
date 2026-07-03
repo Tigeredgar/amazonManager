@@ -31,6 +31,14 @@ const lifecycleRank: Record<string, number> = {
   delivered: 3,
 };
 
+type SyncItem = {
+  id: string;
+  title: string;
+  normalizedTitle: string;
+  quantity: number;
+  lifecycleStatus: string;
+};
+
 const itemSyncFields = {
   id: items.id,
   title: items.title,
@@ -113,6 +121,42 @@ async function createItem(orderId: string, parsedItem: ParsedAmazonItem, parsed:
   const canStoreImageUrl = await hasItemImageUrlColumn();
   const lifecycle = lifecycleForEvent(parsed.type) ?? "ordered";
   const deliveredAt = parsed.type === "delivered" ? new Date(parsed.occurredAt) : null;
+
+  if (!canStoreImageUrl) {
+    const result = await getDb().execute<SyncItem>(sql`
+      insert into items (
+        order_id,
+        title,
+        normalized_title,
+        quantity,
+        unit_price_cents,
+        lifecycle_status,
+        delivered_at,
+        estimated_return_deadline,
+        amazon_url
+      ) values (
+        ${orderId}::uuid,
+        ${parsedItem.title},
+        ${parsedItem.normalizedTitle},
+        ${parsedItem.quantity},
+        ${parsedItem.priceCents},
+        ${lifecycle},
+        ${deliveredAt},
+        ${deliveredAt ? deadlineFromDelivery(deliveredAt) : null},
+        ${parsed.amazonUrl}
+      )
+      returning
+        id,
+        title,
+        normalized_title as "normalizedTitle",
+        quantity,
+        lifecycle_status as "lifecycleStatus"
+    `);
+    const created = result.rows[0];
+    if (!created) throw new Error("Item insert did not return a row");
+    return created;
+  }
+
   const [created] = await getDb()
     .insert(items)
     .values({
