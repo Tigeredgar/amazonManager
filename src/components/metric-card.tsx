@@ -14,7 +14,7 @@ export function MetricCard({
   icon: LucideIcon;
 }) {
   return (
-    <Card className="border border-white/10 bg-card/88 shadow-[0_10px_30px_rgba(0,0,0,0.24)]">
+    <Card className="border border-border bg-card/88 shadow-md">
       <CardContent className="flex items-start justify-between gap-4 p-5">
         <div>
           <p className="text-sm text-muted-foreground">{label}</p>

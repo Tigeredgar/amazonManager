@@ -6,6 +6,17 @@ import { GeistMono } from "geist/font/mono";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
+const themeScript = `
+  try {
+    document.documentElement.classList.toggle(
+      "dark",
+      localStorage.getItem("theme") !== "light"
+    );
+  } catch (_) {
+    document.documentElement.classList.add("dark");
+  }
+`;
+
 export const metadata: Metadata = {
   title: {
     default: "Return Window",
@@ -25,6 +36,9 @@ export default function RootLayout({
       className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full bg-background text-foreground">
         <TooltipProvider>{children}</TooltipProvider>
       </body>

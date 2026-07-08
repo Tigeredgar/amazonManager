@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { AppUser } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import { MobileNav } from "./mobile-nav";
+import { ThemeToggle } from "./theme-toggle";
 
 const navigation = [
   { href: "/", label: "Dashboard", icon: Inbox },
@@ -17,7 +18,7 @@ const navigation = [
 export function AppShell({ user, children }: { user: AppUser; children: React.ReactNode }) {
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-background/92 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/92 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-5 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3 font-semibold tracking-tight">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_0_0_1px_rgba(255,153,0,0.2)]">
@@ -40,6 +41,7 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
           </nav>
 
           <div className="ml-auto flex items-center gap-3">
+            <ThemeToggle />
             {user.demo ? (
               <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">
                 Demo data

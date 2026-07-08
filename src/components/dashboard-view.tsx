@@ -76,7 +76,7 @@ function Deadline({ item }: { item: DashboardItem }) {
 
 function ItemThumbnail({ item }: { item: DashboardItem }) {
   return (
-    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-white/5 sm:h-[72px] sm:w-[72px]">
+    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/60 sm:h-[72px] sm:w-[72px]">
       {item.imageUrl ? (
         <img
           src={item.imageUrl}
@@ -127,8 +127,8 @@ function ItemRow({ item }: { item: DashboardItem }) {
 
 function OrderCard({ order, visibleItems }: { order: DashboardOrder; visibleItems: DashboardItem[] }) {
   return (
-    <Card className="overflow-hidden border border-white/10 bg-card/88 p-0 shadow-[0_14px_40px_rgba(0,0,0,0.28)]">
-      <CardHeader className="border-b border-white/10 bg-white/3 px-5 py-4">
+    <Card className="overflow-hidden border border-border bg-card/88 p-0 shadow-lg">
+      <CardHeader className="border-b border-border bg-muted/35 px-5 py-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
@@ -214,7 +214,7 @@ export function DashboardView({ orders, initialView }: { orders: DashboardOrder[
   return (
     <Tabs value={view} onValueChange={(value) => setView(value as DashboardViewName)} className="space-y-5">
       <div className="space-y-4 sm:space-y-3">
-        <TabsList className="grid h-auto! w-full grid-cols-2 gap-2 border border-white/10 bg-white/4 p-1 sm:grid-cols-3 sm:gap-1 xl:grid-cols-5">
+        <TabsList className="grid h-auto! w-full grid-cols-2 gap-2 border border-border bg-muted/60 p-1 sm:grid-cols-3 sm:gap-1 xl:grid-cols-5">
           <TabsTrigger value="attention" className="h-auto! min-h-10 whitespace-normal py-2 leading-tight">
             <CalendarClock className="h-4 w-4" /> Needs attention <span className="font-mono">{counts.attention}</span>
           </TabsTrigger>
@@ -286,7 +286,7 @@ export function DashboardView({ orders, initialView }: { orders: DashboardOrder[
               <OrderCard key={order.id} order={order} visibleItems={visibleItems} />
             ))
           ) : (
-            <Card className="border border-dashed border-white/15 bg-card/70">
+            <Card className="border border-dashed border-border bg-card/70">
               <CardContent className="flex min-h-48 flex-col items-center justify-center gap-3 text-center">
                 <PackageOpen className="h-8 w-8 text-muted-foreground" />
                 <div>

@@ -23,7 +23,7 @@ function eventIcon(type: string) {
 
 function ItemThumbnail({ item }: { item: { title: string; imageUrl: string | null } }) {
   return (
-    <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-white/5">
+    <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/60">
       {item.imageUrl ? (
         <img
           src={item.imageUrl}
